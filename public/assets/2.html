@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Update Logs</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #141E30;  /* fallback */
+    background: -webkit-linear-gradient(to right, #243B55, #141E30);
+    background: linear-gradient(to right, #243B55, #141E30);
+    color: #fff;
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  }
+
+  h1 {
+    text-align: center;
+    margin-bottom: 40px;
+    text-shadow: 0 0 10px rgba(255,255,255,0.2);
+  }
+
+  .log {
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: transform 0.2s;
+  }
+
+  .log:hover {
+    transform: translateY(-3px);
+  }
+
+  .log h2 {
+    margin-top: 0;
+    color: #00aaff;
+  }
+
+  .log ul {
+    padding-left: 20px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Update Logs</h1>
+  <div id="logs"></div>
+</div>
+
+<script>
+  const updateLogs = [
+    {
+      version: "v2.3.0",
+      date: "2025-12-10",
+      changes: [
+        "Load time less than 3s/avg after multiple tries (one time).",
+        "Improved performance on mobile",
+        "Fixed minor bugs"
+      ]
+    },
+    {
+      version: "v2.2.0",
+      date: "2025-11-25",
+      changes: [
+        "New user onboarding flow",
+        "Updated UI",
+        "Security patch applied"
+      ]
+    },
+    {
+      version: "v2.1.0",
+      date: "2025-11-10",
+      changes: [
+        "Introduced update logs page",
+        "Bug fixes and optimizations"
+      ]
+    }
+  ];
+
+  const logsContainer = document.getElementById("logs");
+
+  updateLogs.forEach(log => {
+    const div = document.createElement("div");
+    div.className = "log";
+    div.innerHTML = `
+      <h2>${log.version} - ${log.date}</h2>
+      <ul>
+        ${log.changes.map(change => `<li>${change}</li>`).join("")}
+      </ul>
+    `;
+    logsContainer.appendChild(div);
+  });
+</script>
+
+</body>
+</html>
