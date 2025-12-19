@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DoxyEdu Browser</title>
+    
+    <!-- Load DoxyEdu scripts FIRST in correct order -->
+    <script src="/scram/scramjet.all.js"></script>
+    <script src="/baremux/index.js"></script>
+    <script src="/epoxy/index.js"></script>
+    <script src="/register-sw.js"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0a0a0a; color: #f0f0f0; height: 100vh; overflow: hidden; }
+        
+        .browser-container { display: flex; flex-direction: column; height: 100vh; }
+        
+        /* Top Bar */
+        .browser-topbar { 
+            background: #111; 
+            border-bottom: 1px solid #333; 
+            padding: 10px 15px; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            flex-shrink: 0; 
+            z-index: 1000;
+        }
+        .nav-btn { 
+            background: #222; 
+            border: 1px solid #444; 
+            color: #ccc; 
+            width: 36px; 
+            height: 36px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            transition: all 0.2s;
+        }
+        .nav-btn:hover { 
+            background: #333; 
+            color: #fff; 
+            border-color: #4a9eff; 
+        }
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* URL Bar */
+        .url-container { 
+            flex: 1; 
+            display: flex; 
+            background: #1a1a1a; 
+            border: 2px solid #333; 
+            border-radius: 30px; 
+            overflow: hidden; 
+            padding: 2px; 
+            transition: border-color 0.2s;
+        }
+        .url-container:focus-within {
+            border-color: #4a9eff;
+        }
+        #browser-url-input { 
+            flex: 1; 
+            background: transparent; 
+            border: none; 
+            color: #fff; 
+            padding: 10px 18px; 
+            font-size: 14px; 
+            outline: none; 
+            font-family: monospace;
+        }
+        #browser-go-btn { 
+            background: linear-gradient(135deg, #4a9eff, #357ae8); 
+            color: white; 
+            border: none; 
+            border-radius: 25px; 
+            padding: 0 22px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            font-size: 14px; 
+            margin: 2px; 
+            white-space: nowrap; 
+            transition: all 0.2s;
+        }
+        #browser-go-btn:hover { 
+            background: linear-gradient(135deg, #357ae8, #2a65cc); 
+            transform: translateY(-1px);
+        }
+        #browser-go-btn:active {
+            transform: translateY(0);
+        }
+        
+        /* Tabs */
+        .browser-tabs { 
+            background: #151515; 
+            border-bottom: 1px solid #333; 
+            display: flex; 
+            overflow-x: auto; 
+            flex-shrink: 0; 
+            height: 42px; 
+            align-items: center; 
+        }
+        .browser-tabs::-webkit-scrollbar { 
+            height: 4px; 
+        }
+        .browser-tabs::-webkit-scrollbar-thumb { 
+            background: #4a9eff; 
+        }
+        
+        .browser-tab { 
+            display: flex; 
+            align-items: center; 
+            padding: 0 15px; 
+            background: #222; 
+            color: #aaa; 
+            border-right: 1px solid #333; 
+            cursor: pointer; 
+            white-space: nowrap; 
+            min-width: 160px; 
+            max-width: 240px; 
+            height: 100%; 
+            position: relative; 
+            transition: background 0.2s;
+        }
+        .browser-tab:hover { 
+            background: #2a2a2a; 
+        }
+        .browser-tab.active { 
+            background: #0f0f0f; 
+            color: #fff; 
+            border-top: 2px solid #4a9eff; 
+        }
+        .tab-title { 
+            flex: 1; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            font-size: 13px; 
+            margin-right: 8px; 
+        }
+        .tab-favicon {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            object-fit: contain;
+        }
+        .tab-close { 
+            color: #777; 
+            font-size: 18px; 
+            line-height: 1; 
+            width: 18px; 
+            height: 18px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            border-radius: 50%; 
+            transition: all 0.2s;
+        }
+        .tab-close:hover { 
+            color: #fff; 
+            background: rgba(255,255,255,0.1); 
+            transform: scale(1.1);
+        }
+        
+        #new-tab-btn { 
+            background: #1a1a1a; 
+            color: #4a9eff; 
+            border: none; 
+            padding: 0 15px; 
+            height: 100%; 
+            font-size: 24px; 
+            cursor: pointer; 
+            border-right: 1px solid #333;
+            transition: background 0.2s;
+        }
+        #new-tab-btn:hover { 
+            background: #222; 
+        }
+        
+        /* Content Area */
+        .browser-content {
+            flex: 1;
+            position: relative;
+            background: #000;
+            overflow: hidden;
+        }
+
+        .tab-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            background: #000;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Scramjet iframe styling */
+        .sj-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #000;
+        }
+
+        /* Loading Overlay */
+        .tab-loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 10, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+        }
+
+        .tab-loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(74, 158, 255, 0.2);
+            border-top: 4px solid #4a9eff;
+            border-radius: 50%;
+            margin-bottom: 15px;
+            animation: spin 1s linear infinite;
+        }
+        
+        .tab-error {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 10, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #ff6b6b;
+            padding: 20px;
+            text-align: center;
+            font-size: 16px;
+        }
+        
+        .tab-error button {
+            background: #4a9eff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-weight: 600;
+        }
+        
+        .tab-error button:hover {
+            background: #357ae8;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Status bar */
+        .status-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(17, 17, 17, 0.9);
+            padding: 5px 15px;
+            font-size: 12px;
+            color: #aaa;
+            border-top: 1px solid #333;
+            z-index: 1000;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="browser-container">
+        <!-- Top Navigation -->
+        <div class="browser-topbar">
+            <button class="nav-btn" id="back-btn" title="Back">←</button>
+            <button class="nav-btn" id="forward-btn" title="Forward">→</button>
+            <button class="nav-btn" id="reload-btn" title="Reload">↻</button>
+            
+            <!-- URL Bar -->
+            <form id="browser-url-form" class="url-container">
+                <input id="browser-url-input" type="text" placeholder="Enter any URL or search the web..." autocomplete="off" />
+                <button id="browser-go-btn" type="submit">Go</button>
+            </form>
+            
+            <button class="nav-btn" id="home-btn" title="Home">🏠</button>
+            <button class="nav-btn" id="new-tab-btn2" title="New Tab">+</button>
+        </div>
+        
+        <!-- Tabs Bar -->
+        <div class="browser-tabs" id="browser-tabs-container">
+            <!-- Tabs will be added here by JavaScript -->
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="browser-content" id="browser-content-area">
+            <!-- Tab content will be added here by JavaScript -->
+        </div>
+        
+        <!-- Status Bar -->
+        <div class="status-bar" id="status-bar">
+            <span id="status-text">Ready</span>
+        </div>
+    </div>
+
+<script>
+// Main DoxyEdu Browser with Scramjet
+class DoxyEduScramjetBrowser {
+    constructor() {
+        this.tabs = new Map(); // tabId -> { frame, controller, url, title, history }
+        this.activeTabId = null;
+        this.tabCounter = 0;
+        this.searchEngine = 'https://www.google.com/search?q=%s';
+        
+        // Scramjet and BareMux instances
+        this.scramjetControllers = new Map();
+        this.bareMuxConnection = null;
+        
+        // Wait for scripts to load
+        this.init();
+    }
+    
+    async init() {
+        console.log('DoxyEdu Scramjet Browser initializing...');
+        
+        try {
+            // Initialize BareMux first
+            await this.initBareMux();
+            
+            // Initialize UI
+            this.initUI();
+            
+            // Create first tab
+            this.createTab('https://doxyedu.dpdns.org');
+            
+            console.log('DoxyEdu Scramjet Browser ready');
+        } catch (error) {
+            console.error('Failed to initialize browser:', error);
+            this.showError('global', 'Failed to initialize browser: ' + error.message);
+        }
+    }
+    
+    async initBareMux() {
+        console.log('Initializing BareMux...');
+        
+        try {
+            // Create BareMux connection
+            this.bareMuxConnection = new BareMux.BareMuxConnection("/baremux/worker.js");
+            
+            // Setup wisp transport
+            const wispUrl = (location.protocol === "https:" ? "wss" : "ws") +
+                "://" + location.host + "/wisp/";
+            
+            await this.bareMuxConnection.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
+            
+            console.log('BareMux initialized with transport:', await this.bareMuxConnection.getTransport());
+        } catch (error) {
+            console.error('Failed to initialize BareMux:', error);
+            throw error;
+        }
+    }
+    
+    async initScramjetForTab(tabId) {
+        console.log(`Initializing Scramjet for tab ${tabId}...`);
+        
+        try {
+            // Load Scramjet controller
+            const { ScramjetController } = $scramjetLoadController();
+            
+            // Create new Scramjet controller for this tab
+            const scramjet = new ScramjetController({
+                files: {
+                    wasm: '/scram/scramjet.wasm.wasm',
+                    all: '/scram/scramjet.all.js',
+                    sync: '/scram/scramjet.sync.js',
+                },
+            });
+            
+            await scramjet.init();
+            
+            // Store controller
+            this.scramjetControllers.set(tabId, scramjet);
+            
+            return scramjet;
+        } catch (error) {
+            console.error(`Failed to initialize Scramjet for tab ${tabId}:`, error);
+            throw error;
+        }
+    }
+    
+    initUI() {
+        // Get elements
+        this.urlForm = document.getElementById('browser-url-form');
+        this.urlInput = document.getElementById('browser-url-input');
+        this.tabsContainer = document.getElementById('browser-tabs-container');
+        this.contentArea = document.getElementById('browser-content-area');
+        this.statusBar = document.getElementById('status-bar');
+        this.statusText = document.getElementById('status-text');
+        
+        // Event listeners
+        this.urlForm.addEventListener('submit', (e) => this.handleUrlSubmit(e));
+        this.urlInput.addEventListener('keydown', (e) => this.handleUrlKeydown(e));
+        
+        // Navigation buttons
+        document.getElementById('back-btn').addEventListener('click', () => this.navigateBack());
+        document.getElementById('forward-btn').addEventListener('click', () => this.navigateForward());
+        document.getElementById('reload-btn').addEventListener('click', () => this.reloadPage());
+        document.getElementById('home-btn').addEventListener('click', () => this.goHome());
+        document.getElementById('new-tab-btn2').addEventListener('click', () => this.createTab());
+        
+        // Add new tab button to tabs container
+        const newTabBtn = document.createElement('button');
+        newTabBtn.id = 'new-tab-btn';
+        newTabBtn.innerHTML = '+';
+        newTabBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.createTab();
+        });
+        this.tabsContainer.appendChild(newTabBtn);
+    }
+    
+    async createTab(url = 'https://doxyedu.dpdns.org') {
+        this.tabCounter++;
+        const tabId = `tab-${this.tabCounter}`;
+        
+        console.log(`Creating tab ${tabId} for ${url}`);
+        
+        // Create tab data
+        const tab = {
+            id: tabId,
+            url: this.normalizeUrl(url),
+            title: 'New Tab',
+            history: [],
+            historyIndex: -1,
+            isLoading: false,
+            favicon: null,
+            scramjet: null,
+            frame: null
+        };
+        
+        this.tabs.set(tabId, tab);
+        
+        // Create UI elements
+        this.createTabUI(tabId, url);
+        
+        // Load the URL
+        await this.loadUrlInTab(tabId, url);
+        
+        // Set as active
+        this.setActiveTab(tabId);
+        
+        return tabId;
+    }
+    
+    createTabUI(tabId, url) {
+        // Tab element
+        const tabEl = document.createElement('div');
+        tabEl.className = 'browser-tab';
+        tabEl.dataset.tabId = tabId;
+        
+        const favicon = document.createElement('img');
+        favicon.className = 'tab-favicon';
+        favicon.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%234a9eff"/></svg>';
+        favicon.onerror = () => favicon.style.display = 'none';
+        
+        const title = document.createElement('span');
+        title.className = 'tab-title';
+        title.textContent = 'New Tab';
+        
+        const close = document.createElement('span');
+        close.className = 'tab-close';
+        close.innerHTML = '×';
+        close.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.closeTab(tabId);
+        });
+        
+        tabEl.appendChild(favicon);
+        tabEl.appendChild(title);
+        tabEl.appendChild(close);
+        
+        tabEl.addEventListener('click', (e) => {
+            if (e.target !== close) {
+                this.setActiveTab(tabId);
+            }
+        });
+        
+        // Insert before new tab button
+        const newTabBtn = document.getElementById('new-tab-btn');
+        this.tabsContainer.insertBefore(tabEl, newTabBtn);
+        
+        // Content area
+        const contentEl = document.createElement('div');
+        contentEl.className = 'tab-content';
+        contentEl.id = `tab-content-${tabId}`;
+        
+        // Add loading overlay
+        const loadingEl = document.createElement('div');
+        loadingEl.className = 'tab-loading';
+        loadingEl.style.display = 'none';
+        loadingEl.innerHTML = `
+            <div class="tab-loading-spinner"></div>
+            <div>Loading via Scramjet...</div>
+        `;
+        contentEl.appendChild(loadingEl);
+        
+        this.contentArea.appendChild(contentEl);
+    }
+    
+    async loadUrlInTab(tabId, url) {
+        const tab = this.tabs.get(tabId);
+        if (!tab) return;
+        
+        // Normalize URL
+        const normalizedUrl = this.normalizeUrl(url);
+        
+        console.log(`Loading ${normalizedUrl} in tab ${tabId} via Scramjet`);
+        
+        // Show loading
+        this.showLoading(tabId, true);
+        this.showStatus(`Loading: ${normalizedUrl}`);
+        
+        try {
+            // Initialize Scramjet for this tab if not already done
+            if (!tab.scramjet) {
+                tab.scramjet = await this.initScramjetForTab(tabId);
+            }
+            
+            const contentEl = document.getElementById(`tab-content-${tabId}`);
+            
+            // Create or reuse Scramjet frame
+            if (!tab.frame) {
+                // Create new Scramjet frame
+                const frame = tab.scramjet.createFrame();
+                frame.frame.className = 'sj-frame';
+                frame.frame.id = `sj-frame-${tabId}`;
+                
+                // Store frame reference
+                tab.frame = frame;
+                
+                // Add frame to content area
+                contentEl.appendChild(frame.frame);
+                
+                // Listen for frame events
+                this.setupFrameEvents(tabId, frame);
+            }
+            
+            // Update tab URL
+            tab.url = normalizedUrl;
+            
+            // Add to history
+            this.addToHistory(tabId, normalizedUrl);
+            
+            // Navigate the Scramjet frame to URL
+            tab.frame.go(normalizedUrl);
+            
+            // Update URL bar if this is active tab
+            if (this.activeTabId === tabId) {
+                this.urlInput.value = normalizedUrl;
+            }
+            
+            // Update tab title with hostname
+            this.updateTabTitle(tabId, new URL(normalizedUrl).hostname);
+            
+        } catch (error) {
+            console.error(`Failed to load URL in tab ${tabId}:`, error);
+            this.showLoading(tabId, false);
+            this.showError(tabId, `Failed to load via Scramjet: ${error.message}`);
+        }
+    }
+    
+    setupFrameEvents(tabId, frame) {
+        // Listen for frame load events
+        frame.frame.addEventListener('load', () => {
+            this.handleFrameLoad(tabId);
+        });
+        
+        // Listen for frame errors
+        frame.frame.addEventListener('error', (error) => {
+            console.error(`Frame error in tab ${tabId}:`, error);
+            this.handleFrameError(tabId, error);
+        });
+        
+        // Try to intercept navigation within the frame
+        frame.frame.contentWindow.addEventListener('beforeunload', () => {
+            this.showLoading(tabId, true);
+        });
+    }
+    
+    handleFrameLoad(tabId) {
+        console.log(`Frame loaded for tab ${tabId}`);
+        const tab = this.tabs.get(tabId);
+        if (!tab) return;
+        
+        // Hide loading
+        this.showLoading(tabId, false);
+        
+        try {
+            // Try to get page title from frame
+            const frame = tab.frame.frame;
+            if (frame && frame.contentDocument) {
+                const title = frame.contentDocument.title || new URL(tab.url).hostname;
+                tab.title = title;
+                this.updateTabTitle(tabId, title);
+                
+                // Update favicon
+                this.updateFavicon(tabId);
+            }
+        } catch (error) {
+            // Cross-origin restrictions may prevent accessing frame content
+            console.log('Cannot access frame content due to cross-origin restrictions');
+            this.updateTabTitle(tabId, new URL(tab.url).hostname);
+        }
+        
+        // Show status
+        this.showStatus(`Loaded: ${tab.url}`, 2000);
+    }
+    
+    handleFrameError(tabId, error) {
+        console.error(`Frame error for tab ${tabId}:`, error);
+        this.showLoading(tabId, false);
+        this.showError(tabId, 'Failed to load page via Scramjet');
+    }
+    
+    showLoading(tabId, show) {
+        const contentEl = document.getElementById(`tab-content-${tabId}`);
+        if (!contentEl) return;
+        
+        const loadingEl = contentEl.querySelector('.tab-loading');
+        if (loadingEl) {
+            loadingEl.style.display = show ? 'flex' : 'none';
+        }
+        
+        const tab = this.tabs.get(tabId);
+        if (tab) {
+            tab.isLoading = show;
+        }
+    }
+    
+    showError(tabId, message) {
+        const contentEl = document.getElementById(`tab-content-${tabId}`);
+        if (!contentEl) return;
+        
+        // Remove existing error if any
+        const existingError = contentEl.querySelector('.tab-error');
+        if (existingError) existingError.remove();
+        
+        const errorEl = document.createElement('div');
+        errorEl.className = 'tab-error';
+        errorEl.innerHTML = `
+            <h3>Scramjet Error</h3>
+            <p>${message}</p>
+            <button onclick="window.browser.reloadPage()">Try Again</button>
+            <button onclick="window.browser.goHomeTab('${tabId}')">Go Home</button>
+        `;
+        
+        contentEl.appendChild(errorEl);
+        
+        this.showStatus(`Error: ${message}`, 5000);
+    }
+    
+    showStatus(message, timeout = 3000) {
+        this.statusText.textContent = message;
+        this.statusBar.style.display = 'block';
+        
+        if (timeout > 0) {
+            clearTimeout(this.statusTimeout);
+            this.statusTimeout = setTimeout(() => {
+                this.statusBar.style.display = 'none';
+            }, timeout);
+        }
+    }
+    
+    updateTabTitle(tabId, title) {
+        const tabEl = document.querySelector(`.browser-tab[data-tab-id="${tabId}"]`);
+        if (!tabEl) return;
+        
+        const titleEl = tabEl.querySelector('.tab-title');
+        if (titleEl) {
+            titleEl.textContent = title;
+        }
+        
+        const tab = this.tabs.get(tabId);
+        if (tab) {
+            tab.title = title;
+        }
+    }
+    
+    updateFavicon(tabId) {
+        const tab = this.tabs.get(tabId);
+        if (!tab || !tab.url) return;
+        
+        const tabEl = document.querySelector(`.browser-tab[data-tab-id="${tabId}"]`);
+        if (!tabEl) return;
+        
+        const faviconEl = tabEl.querySelector('.tab-favicon');
+        if (!faviconEl) return;
+        
+        try {
+            const urlObj = new URL(tab.url);
+            const faviconUrl = `${urlObj.origin}/favicon.ico`;
+            
+            faviconEl.src = faviconUrl;
+            faviconEl.onerror = () => {
+                faviconEl.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%234a9eff"/></svg>';
+            };
+        } catch (error) {
+            // Ignore favicon errors
+        }
+    }
+    
+    setActiveTab(tabId) {
+        if (this.activeTabId === tabId) return;
+        
+        // Deactivate previous tab
+        if (this.activeTabId) {
+            const prevTabEl = document.querySelector(`.browser-tab[data-tab-id="${this.activeTabId}"]`);
+            const prevContentEl = document.getElementById(`tab-content-${this.activeTabId}`);
+            
+            if (prevTabEl) prevTabEl.classList.remove('active');
+            if (prevContentEl) prevContentEl.classList.remove('active');
+        }
+        
+        // Activate new tab
+        this.activeTabId = tabId;
+        
+        const tab = this.tabs.get(tabId);
+        const tabEl = document.querySelector(`.browser-tab[data-tab-id="${tabId}"]`);
+        const contentEl = document.getElementById(`tab-content-${tabId}`);
+        
+        if (tabEl) tabEl.classList.add('active');
+        if (contentEl) contentEl.classList.add('active');
+        
+        // Update URL bar
+        if (tab && this.urlInput) {
+            this.urlInput.value = tab.url || '';
+        }
+        
+        // Update navigation buttons
+        this.updateNavButtons();
+    }
+    
+    closeTab(tabId) {
+        if (this.tabs.size <= 1) {
+            // Don't close last tab, just create new one
+            this.createTab();
+            return;
+        }
+        
+        // Clean up Scramjet resources
+        const tab = this.tabs.get(tabId);
+        if (tab && tab.scramjet) {
+            // Clean up Scramjet controller if needed
+            this.scramjetControllers.delete(tabId);
+        }
+        
+        // Remove from tabs map
+        this.tabs.delete(tabId);
+        
+        // Remove UI elements
+        const tabEl = document.querySelector(`.browser-tab[data-tab-id="${tabId}"]`);
+        const contentEl = document.getElementById(`tab-content-${tabId}`);
+        
+        if (tabEl) tabEl.remove();
+        if (contentEl) contentEl.remove();
+        
+        // If closing active tab, activate another tab
+        if (this.activeTabId === tabId) {
+            const remainingTabs = Array.from(this.tabs.keys());
+            if (remainingTabs.length > 0) {
+                this.setActiveTab(remainingTabs[0]);
+            } else {
+                this.activeTabId = null;
+            }
+        }
+    }
+    
+    handleUrlSubmit(e) {
+        e.preventDefault();
+        
+        const url = this.urlInput.value.trim();
+        if (!url) return;
+        
+        this.navigateTo(url);
+    }
+    
+    handleUrlKeydown(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            this.urlForm.requestSubmit();
+        }
+    }
+    
+    navigateTo(url) {
+        if (!this.activeTabId) {
+            this.createTab(url);
+            return;
+        }
+        
+        this.loadUrlInTab(this.activeTabId, url);
+    }
+    
+    normalizeUrl(input) {
+        input = input.trim();
+        
+        // Check if it's already a valid URL
+        try {
+            new URL(input);
+            return input;
+        } catch {
+            // Not a valid URL
+        }
+        
+        // Check if it's a domain (contains dot but no spaces)
+        if (input.includes('.') && !input.includes(' ')) {
+            // Try adding https://
+            if (!input.startsWith('http://') && !input.startsWith('https://')) {
+                input = 'https://' + input;
+            }
+            
+            try {
+                new URL(input);
+                return input;
+            } catch {
+                // Still not valid
+            }
+        }
+        
+        // Treat as search query
+        return this.searchEngine.replace('%s', encodeURIComponent(input));
+    }
+    
+    addToHistory(tabId, url) {
+        const tab = this.tabs.get(tabId);
+        if (!tab) return;
+        
+        // Remove any forward history
+        tab.history = tab.history.slice(0, tab.historyIndex + 1);
+        
+        // Add new URL
+        tab.history.push(url);
+        tab.historyIndex = tab.history.length - 1;
+        
+        this.updateNavButtons();
+    }
+    
+    navigateBack() {
+        const tab = this.tabs.get(this.activeTabId);
+        if (!tab || tab.historyIndex <= 0) return;
+        
+        tab.historyIndex--;
+        const url = tab.history[tab.historyIndex];
+        this.loadUrlInTab(this.activeTabId, url);
+    }
+    
+    navigateForward() {
+        const tab = this.tabs.get(this.activeTabId);
+        if (!tab || tab.historyIndex >= tab.history.length - 1) return;
+        
+        tab.historyIndex++;
+        const url = tab.history[tab.historyIndex];
+        this.loadUrlInTab(this.activeTabId, url);
+    }
+    
+    reloadPage() {
+        if (!this.activeTabId) return;
+        
+        const tab = this.tabs.get(this.activeTabId);
+        if (!tab || !tab.url) return;
+        
+        this.loadUrlInTab(this.activeTabId, tab.url);
+    }
+    
+    goHome() {
+        if (!this.activeTabId) {
+            this.createTab();
+            return;
+        }
+        
+        this.loadUrlInTab(this.activeTabId, 'https://doxyedu.dpdns.org');
+    }
+    
+    goHomeTab(tabId) {
+        this.loadUrlInTab(tabId, 'https://doxyedu.dpdns.org');
+    }
+    
+    updateNavButtons() {
+        const tab = this.tabs.get(this.activeTabId);
+        if (!tab) return;
+        
+        const backBtn = document.getElementById('back-btn');
+        const forwardBtn = document.getElementById('forward-btn');
+        
+        if (backBtn) backBtn.disabled = tab.historyIndex <= 0;
+        if (forwardBtn) forwardBtn.disabled = tab.historyIndex >= tab.history.length - 1;
+    }
+}
+
+// Initialize browser when page loads and scripts are ready
+function initBrowser() {
+    // Check if required scripts are loaded
+    if (typeof BareMux === 'undefined' || typeof $scramjetLoadController === 'undefined') {
+        console.log('Waiting for scripts to load...');
+        setTimeout(initBrowser, 100);
+        return;
+    }
+    
+    console.log('All scripts loaded, initializing browser...');
+    window.browser = new DoxyEduScramjetBrowser();
+}
+
+// Start initialization
+document.addEventListener('DOMContentLoaded', initBrowser);
+</script>
+</body>
+</html>
