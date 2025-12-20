@@ -8,7 +8,7 @@
 
 > ⚠️ **Important:** This is a heavily-modified version of [Scramjet](https://github.com/MercuryWorkshop/scramjet), not original work.
 
-## 📋 About This Fork
+## 📋 About This Clone
 
 This repository contains modifications to the original Scramjet project and customized for unblocking websites in places like school:
 
