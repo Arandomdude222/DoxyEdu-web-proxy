@@ -7,7 +7,6 @@
 https://github.com/Arandomdude222/DoxyEdu-web-proxy
 
 **A Web Proxy designed to unblock websites, powered by the Scramjet engine**
-> Official DoxyEdu Repo  
 > Fork it? Awesome! Found it useful? **Give us a star ⭐** and help keep the project thriving!
 
 
