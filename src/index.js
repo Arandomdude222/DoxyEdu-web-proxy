@@ -38,7 +38,7 @@ logging.set_level(logging.NONE);
 
 Object.assign(wisp.options, {
   transport: "curl",                    // production transport
-  curl_host: "http://127.0.0.1:9090",  // python Wisp
+  curl_host: "http://127.0.0.1:9090",  // python Wisp ####### PORT FOR WISP, NOT THE UI/FRONTEND
   encrypted: true,
   allow_udp_streams: true,
   hostname_blacklist: [/example\.com/],
@@ -92,7 +92,7 @@ process.on("SIGTERM", shutdown);
 
 // --- Start server ---
 let port = parseInt(process.env.PORT || "");
-if (isNaN(port)) port = 8080;
+if (isNaN(port)) port = 8080;  // PORT FOR WEB SERVER
 
 fastify.listen({
   port: port,

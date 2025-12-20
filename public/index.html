@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home</title>
-    <!-- Scramjet + Proxy Stack -->
+    <!-- Scramjet + Proxy -->
     <script src="/scram/scramjet.all.js"></script>
     <script src="baremux/index.js" defer></script>
     <script src="epoxy/index.js" defer></script>
@@ -360,9 +360,9 @@
         <div class="server-info">
             DoxyEdu Repo at <b>https://github.com/Arandomdude222/DoxyEdu-web-proxy</b>
         </div>
-        <!-- LOGO SECTION -->
+        
         <div class="logo-section">
-            <img src="LOGO.svg" alt="DoxyEdu Logo">
+            <img src="logo.svg" alt="DoxyEdu Logo">
             <!-- <p>DoxyEdu is the spot where you can get quick, clear help with any topic you're stuck on.</p> -->
         </div>
         
@@ -377,14 +377,14 @@
 
         <!-- NEWS SECTION -->
         <div class="news-section">
-            <h2>Learning News</h2>
+            <h2>LearnNews</h2>
             <div id="learning-news"></div>
         </div>
       
         <div id="loading-overlay" style="display: none;">
             <div class="loading-content">
                 <div class="loading-spinner"></div>
-                <p>Loading through DoxyEdu proxy...</p>
+                <p>Loading topic</p>
                 <div class="loading-progress">
                     <div class="progress-bar"></div>
                 </div>
@@ -395,7 +395,6 @@
 <!-- <iframe id="sj-frame" style="display: none;" loading="lazy"></iframe> -->
 
 <style>
-    /* Loading Screen Styles */
     #loading-overlay {
         position: fixed;
         top: 50px;
@@ -479,10 +478,7 @@
         60% { content: '..'; }
         80%, 100% { content: '...'; }
     }
-</style>
-<style>
     #loading-overlay {
-        /* Add this to your existing #loading-overlay styles */
         animation: fadeOut 3s forwards;
         animation-delay: 2s; /* Show for 2 seconds then fade out */
     }
@@ -494,7 +490,6 @@
 </style>
 
 <script>
-// Just show loading, it will auto-hide with CSS
 document.getElementById('sj-form').addEventListener('submit', function() {
     const loading = document.getElementById('loading-overlay');
     loading.style.display = 'flex';
@@ -524,7 +519,7 @@ document.getElementById('sj-form').addEventListener('submit', function() {
         <span>DoxyEdu &copy;| MW 2025</span>
     </footer>
 
-    <!-- CHAT WIDGET -->
+    <!-- CHAT WIDGET (used to be chat widget but cant be bothered to rename) -->
     <div id="chat-container">
         <div id="chat-header">
             <span>Update Logs</span>
@@ -685,7 +680,6 @@ document.getElementById('sj-form').addEventListener('submit', function() {
                 subtree: true
             });
             
-            // Smooth scroll for anchor links
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                 anchor.addEventListener('click', function(e) {
                     e.preventDefault();

@@ -60,3 +60,5 @@ form.addEventListener("submit", async (event) => {
 	document.body.appendChild(frame.frame);	
 	frame.go(url);
 });
+// End of Index.js 
+// Default index.js of scramjet

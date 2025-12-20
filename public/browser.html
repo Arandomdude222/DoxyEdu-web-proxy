@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DoxyEdu Browser</title>
     
-    <!-- Load DoxyEdu scripts FIRST in correct order -->
+    <!-- Load in correct order -->
     <script src="/scram/scramjet.all.js"></script>
     <script src="/baremux/index.js"></script>
     <script src="/epoxy/index.js"></script>
@@ -276,8 +276,7 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
-        /* Status bar */
+
         .status-bar {
             position: absolute;
             bottom: 0;
@@ -313,12 +312,12 @@
         
         <!-- Tabs Bar -->
         <div class="browser-tabs" id="browser-tabs-container">
-            <!-- Tabs will be added here by JavaScript -->
+            <!-- jS will add -->
         </div>
         
         <!-- Main Content Area -->
         <div class="browser-content" id="browser-content-area">
-            <!-- Tab content will be added here by JavaScript -->
+            <!-- JS will add -->
         </div>
         
         <!-- Status Bar -->
@@ -328,7 +327,6 @@
     </div>
 
 <script>
-// Fixed DoxyEdu Browser - Works like homepage but with tabs
 class DoxyEduTabbedBrowser {
     constructor() {
         this.tabs = new Map();
@@ -351,10 +349,10 @@ class DoxyEduTabbedBrowser {
             // 1. Initialize UI FIRST
             this.initUI();
             
-            // 2. Wait for scripts to load (CRITICAL - like homepage)
+            // 2. Wait for scripts to load 
             await this.waitForScripts();
             
-            // 3. Initialize SINGLE Scramjet instance (LIKE HOMEPAGE)
+            // 3. Initialize SINGLE Scramjet instance
             const { ScramjetController } = $scramjetLoadController();
             this.scramjet = new ScramjetController({
                 files: {
@@ -388,8 +386,7 @@ class DoxyEduTabbedBrowser {
             this.showGlobalError('Failed to initialize: ' + error.message);
         }
     }
-    
-    // Wait for scripts EXACTLY like homepage
+   
     waitForScripts() {
         return new Promise((resolve, reject) => {
             let attempts = 0;
@@ -397,8 +394,7 @@ class DoxyEduTabbedBrowser {
             
             const check = () => {
                 attempts++;
-                
-                // Check if scripts are loaded (like homepage checks)
+
                 const scriptsLoaded = 
                     typeof BareMux !== 'undefined' && 
                     typeof $scramjetLoadController !== 'undefined' &&
@@ -557,18 +553,13 @@ class DoxyEduTabbedBrowser {
         this.showStatus(`Loading: ${normalizedUrl}`);
         
         try {
-            // Register service worker (LIKE HOMEPAGE)
             await registerSW();
             
             const contentEl = document.getElementById(`tab-content-${tabId}`);
-            
-            // Create frame using SINGLETON Scramjet instance (LIKE HOMEPAGE)
             if (!tab.frame) {
                 if (!this.scramjet) {
                     throw new Error('Scramjet not initialized');
                 }
-                
-                // Create frame from SINGLETON Scramjet (LIKE HOMEPAGE)
                 const frame = this.scramjet.createFrame();
                 frame.frame.className = 'sj-frame';
                 frame.frame.id = `sj-frame-${tabId}`;
@@ -589,7 +580,6 @@ class DoxyEduTabbedBrowser {
             // Add to history
             this.addToHistory(tabId, normalizedUrl);
             
-            // Navigate the frame (LIKE HOMEPAGE)
             tab.frame.go(normalizedUrl);
             
             // Update URL bar if this is active tab
@@ -630,7 +620,6 @@ class DoxyEduTabbedBrowser {
         const tab = this.tabs.get(tabId);
         if (!tab) return;
         
-        // Hide loading
         this.showLoading(tabId, false);
         
         try {
@@ -957,18 +946,18 @@ class DoxyEduTabbedBrowser {
     }
 }
 
-// Initialize browser (LIKE HOMEPAGE)
+// Initialize browser 
 function initBrowser() {
     console.log('🔄 Starting DoxyEdu Tabbed Browser...');
     
     // Check if required scripts are loaded
     if (typeof BareMux === 'undefined' || typeof $scramjetLoadController === 'undefined') {
-        console.log('⏳ Waiting for scripts...');
+        console.log('Waiting for scripts...');
         setTimeout(initBrowser, 100);
         return;
     }
     
-    console.log('✅ All scripts loaded, initializing...');
+    console.log('[✅]All scripts loaded, initializing...');
     window.browser = new DoxyEduTabbedBrowser();
 }
 
