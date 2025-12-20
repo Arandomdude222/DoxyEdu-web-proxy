@@ -1,19 +1,19 @@
 <p align="center">
-  <img src="https://doxyedu.dpdns.org/LOGO.svg" alt="DoxyEdu Logo" width="400">
+  <img src="https://doxyedu.dpdns.org/logo.svg" alt="DoxyEdu Logo" width="400">
 </p>
 
 # DoxyEdu Web Proxy
 
 [GitHub Repository](https://github.com/Arandomdude222/DoxyEdu-web-proxy)
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.0.6-blue)
 [![GitHub Repo stars](https://img.shields.io/github/stars/Arandomdude222/DoxyEdu-web-proxy?style=social)](https://github.com/Arandomdude222/DoxyEdu-web-proxy/stargazers)
 
 **A Web Proxy designed to unblock websites, powered by the Scramjet engine**
 > Fork it? Awesome! Found it useful? **Give us a star ⭐** and help keep the project thriving!
 
 
-> ⚠️ **Important:** This is a heavily-modified version of [Scramjet](https://github.com/MercuryWorkshop/scramjet), not original work.
+> ⚠️ **Important:** This is a heavily-modified version of [Scramjet](https://github.com/MercuryWorkshop/scramjet), not original work (well kinda is).
 
 ## 📋 About This Clone
 
