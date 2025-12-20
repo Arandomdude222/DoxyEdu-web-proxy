@@ -2,7 +2,7 @@
   <img src="https://doxyedu.dpdns.org/LOGO.svg" alt="DoxyEdu Logo" width="400">
 </p>
 
-# DoxyEdu Web Proxy (this is the orginal)
+# DoxyEdu Web Proxy
 
 https://github.com/Arandomdude222/DoxyEdu-web-proxy
 
