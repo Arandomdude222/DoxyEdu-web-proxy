@@ -4,13 +4,13 @@
 
 # DoxyEdu Web Proxy
 
-**Educational web access powered by the Scramjet engine**
+**A Web Proxy designed to unblock websites, powered by the Scramjet engine**
 
-> ⚠️ **Important:** This is a modified version of [Scramjet](https://github.com/MercuryWorkshop/scramjet), not original work.
+> ⚠️ **Important:** This is a heavily-modified version of [Scramjet](https://github.com/MercuryWorkshop/scramjet), not original work.
 
 ## 📋 About This Fork
 
-This repository contains modifications to the original Scramjet project customized for unblocking websites in places like school:
+This repository contains modifications to the original Scramjet project and customized for unblocking websites in places like school:
 
 ## 🔧 Modifications from Original
 
@@ -19,7 +19,6 @@ This repository contains modifications to the original Scramjet project customiz
 - **Optimized for educational environments**
 - **Multi-tab support** - access multiple webpages simultaneously
 - **Enhanced features** beyond the original
-- **Custom deployment configuration**
 
 ## 🚀 Quick Setup
 
@@ -41,8 +40,10 @@ AND now start it:
 ```pnpm start```
 
 📄 License & Attribution
-Original work: Scramjet by Mercury Workshop
+Original work: Scramjet by Mercury Workshop (GNU AGPL)
+
 Modified by ME
+
 Note: For the original, maintained version, visit the official Scramjet repository.
 
 
