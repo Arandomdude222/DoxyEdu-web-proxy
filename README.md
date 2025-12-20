@@ -2,7 +2,9 @@
   <img src="https://doxyedu.dpdns.org/LOGO.svg" alt="DoxyEdu Logo" width="400">
 </p>
 
-# DoxyEdu Web Proxy
+# DoxyEdu Web Proxy (this is the orginal)
+
+https://github.com/Arandomdude222/DoxyEdu-web-proxy
 
 **A Web Proxy designed to unblock websites, powered by the Scramjet engine**
 
@@ -46,4 +48,6 @@ Modified by ME
 
 Note: For the original, maintained version, visit the official Scramjet repository.
 
+Keywords:
+Scramjet based proxy, Scramjet Proxy, NodeJS, Web Proxy, Open source web proxy, Free online Web Proxys,
 
