@@ -307,7 +307,7 @@
                 <button id="browser-go-btn" type="submit">Go</button>
             </form>
             
-            <button class="nav-btn" id="home-btn" title="Home"><img  src="home.svg" width="90%" height="90%"></img></button>
+            <button class="nav-btn" id="home-btn" title="Home"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z'/%3E%3C/svg%3E" width="20" height="20"></img></button>
             <button class="nav-btn" id="new-tab-btn2" title="New Tab">+</button>
         </div>
         
@@ -328,71 +328,35 @@
     </div>
 
 <script>
-// Main DoxyEdu Browser with Scramjet
-class DoxyEduScramjetBrowser {
+// Fixed DoxyEdu Browser - Works like homepage but with tabs
+class DoxyEduTabbedBrowser {
     constructor() {
-        this.tabs = new Map(); // tabId -> { frame, controller, url, title, history }
+        this.tabs = new Map();
         this.activeTabId = null;
         this.tabCounter = 0;
         this.searchEngine = 'https://www.google.com/search?q=%s';
         
-        // Scramjet and BareMux instances
-        this.scramjetControllers = new Map();
-        this.bareMuxConnection = null;
+        // SINGLETON instances (like homepage)
+        this.scramjet = null;
+        this.connection = null;
+        this.initialized = false;
         
-        // Wait for scripts to load
         this.init();
     }
     
     async init() {
-        console.log('DoxyEdu Scramjet Browser initializing...');
+        console.log('🚀 DoxyEdu Tabbed Browser initializing...');
         
         try {
-            // Initialize BareMux first
-            await this.initBareMux();
-            
-            // Initialize UI
+            // 1. Initialize UI FIRST
             this.initUI();
             
-            // Create first tab
-            this.createTab('https://doxyedu.dpdns.org');
+            // 2. Wait for scripts to load (CRITICAL - like homepage)
+            await this.waitForScripts();
             
-            console.log('DoxyEdu Scramjet Browser ready');
-        } catch (error) {
-            console.error('Failed to initialize browser:', error);
-            this.showError('global', 'Failed to initialize browser: ' + error.message);
-        }
-    }
-    
-    async initBareMux() {
-        console.log('Initializing BareMux...');
-        
-        try {
-            // Create BareMux connection
-            this.bareMuxConnection = new BareMux.BareMuxConnection("/baremux/worker.js");
-            
-            // Setup wisp transport
-            const wispUrl = (location.protocol === "https:" ? "wss" : "ws") +
-                "://" + location.host + "/wisp/";
-            
-            await this.bareMuxConnection.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
-            
-            console.log('BareMux initialized with transport:', await this.bareMuxConnection.getTransport());
-        } catch (error) {
-            console.error('Failed to initialize BareMux:', error);
-            throw error;
-        }
-    }
-    
-    async initScramjetForTab(tabId) {
-        console.log(`Initializing Scramjet for tab ${tabId}...`);
-        
-        try {
-            // Load Scramjet controller
+            // 3. Initialize SINGLE Scramjet instance (LIKE HOMEPAGE)
             const { ScramjetController } = $scramjetLoadController();
-            
-            // Create new Scramjet controller for this tab
-            const scramjet = new ScramjetController({
+            this.scramjet = new ScramjetController({
                 files: {
                     wasm: '/scram/scramjet.wasm.wasm',
                     all: '/scram/scramjet.all.js',
@@ -400,16 +364,58 @@ class DoxyEduScramjetBrowser {
                 },
             });
             
-            await scramjet.init();
+            await this.scramjet.init();
+            console.log('✅ Scramjet initialized');
             
-            // Store controller
-            this.scramjetControllers.set(tabId, scramjet);
+            // 4. Initialize SINGLE BareMux connection (LIKE HOMEPAGE)
+            this.connection = new BareMux.BareMuxConnection("/baremux/worker.js");
             
-            return scramjet;
+            const wispUrl = (location.protocol === "https:" ? "wss" : "ws") +
+                "://" + location.host + "/wisp/";
+            
+            await this.connection.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
+            console.log('✅ BareMux initialized');
+            
+            this.initialized = true;
+            
+            // 5. Create first tab with Google homepage
+            this.createTab('https://www.google.com');
+            
+            console.log('✅ DoxyEdu Tabbed Browser ready');
+            
         } catch (error) {
-            console.error(`Failed to initialize Scramjet for tab ${tabId}:`, error);
-            throw error;
+            console.error('❌ Failed to initialize browser:', error);
+            this.showGlobalError('Failed to initialize: ' + error.message);
         }
+    }
+    
+    // Wait for scripts EXACTLY like homepage
+    waitForScripts() {
+        return new Promise((resolve, reject) => {
+            let attempts = 0;
+            const maxAttempts = 50;
+            
+            const check = () => {
+                attempts++;
+                
+                // Check if scripts are loaded (like homepage checks)
+                const scriptsLoaded = 
+                    typeof BareMux !== 'undefined' && 
+                    typeof $scramjetLoadController !== 'undefined' &&
+                    typeof BareMux.BareMuxConnection === 'function';
+                
+                if (scriptsLoaded) {
+                    console.log('✅ All scripts loaded');
+                    resolve();
+                } else if (attempts >= maxAttempts) {
+                    reject(new Error('Scripts failed to load'));
+                } else {
+                    setTimeout(check, 100);
+                }
+            };
+            
+            check();
+        });
     }
     
     initUI() {
@@ -423,7 +429,12 @@ class DoxyEduScramjetBrowser {
         
         // Event listeners
         this.urlForm.addEventListener('submit', (e) => this.handleUrlSubmit(e));
-        this.urlInput.addEventListener('keydown', (e) => this.handleUrlKeydown(e));
+        this.urlInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.urlForm.requestSubmit();
+            }
+        });
         
         // Navigation buttons
         document.getElementById('back-btn').addEventListener('click', () => this.navigateBack());
@@ -444,7 +455,7 @@ class DoxyEduScramjetBrowser {
         this.tabsContainer.appendChild(newTabBtn);
     }
     
-    async createTab(url = 'https://doxyedu.dpdns.org') {
+    async createTab(url = 'https://www.google.com') {
         this.tabCounter++;
         const tabId = `tab-${this.tabCounter}`;
         
@@ -459,8 +470,8 @@ class DoxyEduScramjetBrowser {
             historyIndex: -1,
             isLoading: false,
             favicon: null,
-            scramjet: null,
-            frame: null
+            frame: null,
+            loadingEl: null
         };
         
         this.tabs.set(tabId, tab);
@@ -485,7 +496,7 @@ class DoxyEduScramjetBrowser {
         
         const favicon = document.createElement('img');
         favicon.className = 'tab-favicon';
-        favicon.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%234a9eff"/></svg>';
+        favicon.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="45" fill="%234a9eff"/%3E%3C/svg%3E';
         favicon.onerror = () => favicon.style.display = 'none';
         
         const title = document.createElement('span');
@@ -539,24 +550,26 @@ class DoxyEduScramjetBrowser {
         // Normalize URL
         const normalizedUrl = this.normalizeUrl(url);
         
-        console.log(`Loading ${normalizedUrl} in tab ${tabId} via Scramjet`);
+        console.log(`Loading ${normalizedUrl} in tab ${tabId}`);
         
         // Show loading
         this.showLoading(tabId, true);
         this.showStatus(`Loading: ${normalizedUrl}`);
         
         try {
-            // Initialize Scramjet for this tab if not already done
-            if (!tab.scramjet) {
-                tab.scramjet = await this.initScramjetForTab(tabId);
-            }
+            // Register service worker (LIKE HOMEPAGE)
+            await registerSW();
             
             const contentEl = document.getElementById(`tab-content-${tabId}`);
             
-            // Create or reuse Scramjet frame
+            // Create frame using SINGLETON Scramjet instance (LIKE HOMEPAGE)
             if (!tab.frame) {
-                // Create new Scramjet frame
-                const frame = tab.scramjet.createFrame();
+                if (!this.scramjet) {
+                    throw new Error('Scramjet not initialized');
+                }
+                
+                // Create frame from SINGLETON Scramjet (LIKE HOMEPAGE)
+                const frame = this.scramjet.createFrame();
                 frame.frame.className = 'sj-frame';
                 frame.frame.id = `sj-frame-${tabId}`;
                 
@@ -576,7 +589,7 @@ class DoxyEduScramjetBrowser {
             // Add to history
             this.addToHistory(tabId, normalizedUrl);
             
-            // Navigate the Scramjet frame to URL
+            // Navigate the frame (LIKE HOMEPAGE)
             tab.frame.go(normalizedUrl);
             
             // Update URL bar if this is active tab
@@ -590,7 +603,7 @@ class DoxyEduScramjetBrowser {
         } catch (error) {
             console.error(`Failed to load URL in tab ${tabId}:`, error);
             this.showLoading(tabId, false);
-            this.showError(tabId, `Failed to load via Scramjet: ${error.message}`);
+            this.showTabError(tabId, `Failed to load: ${error.message}`);
         }
     }
     
@@ -632,8 +645,7 @@ class DoxyEduScramjetBrowser {
                 this.updateFavicon(tabId);
             }
         } catch (error) {
-            // Cross-origin restrictions may prevent accessing frame content
-            console.log('Cannot access frame content due to cross-origin restrictions');
+            // Cross-origin restrictions
             this.updateTabTitle(tabId, new URL(tab.url).hostname);
         }
         
@@ -644,7 +656,7 @@ class DoxyEduScramjetBrowser {
     handleFrameError(tabId, error) {
         console.error(`Frame error for tab ${tabId}:`, error);
         this.showLoading(tabId, false);
-        this.showError(tabId, 'Failed to load page via Scramjet');
+        this.showTabError(tabId, 'Failed to load page via Scramjet');
     }
     
     showLoading(tabId, show) {
@@ -662,7 +674,7 @@ class DoxyEduScramjetBrowser {
         }
     }
     
-    showError(tabId, message) {
+    showTabError(tabId, message) {
         const contentEl = document.getElementById(`tab-content-${tabId}`);
         if (!contentEl) return;
         
@@ -673,15 +685,40 @@ class DoxyEduScramjetBrowser {
         const errorEl = document.createElement('div');
         errorEl.className = 'tab-error';
         errorEl.innerHTML = `
-            <h3>Scramjet Error</h3>
+            <h3>Error</h3>
             <p>${message}</p>
-            <button onclick="window.browser.reloadPage()">Try Again</button>
+            <button onclick="window.browser.reloadTab('${tabId}')">Try Again</button>
             <button onclick="window.browser.goHomeTab('${tabId}')">Go Home</button>
         `;
         
         contentEl.appendChild(errorEl);
         
         this.showStatus(`Error: ${message}`, 5000);
+    }
+    
+    showGlobalError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #111;
+            padding: 30px;
+            border-radius: 10px;
+            border: 2px solid #ff5f57;
+            z-index: 10000;
+            color: #fff;
+            text-align: center;
+        `;
+        errorDiv.innerHTML = `
+            <h3>DoxyEdu Error</h3>
+            <p>${message}</p>
+            <button onclick="location.reload()" style="background: #28c840; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-top: 15px;">
+                Reload Page
+            </button>
+        `;
+        document.body.appendChild(errorDiv);
     }
     
     showStatus(message, timeout = 3000) {
@@ -727,7 +764,7 @@ class DoxyEduScramjetBrowser {
             
             faviconEl.src = faviconUrl;
             faviconEl.onerror = () => {
-                faviconEl.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%234a9eff"/></svg>';
+                faviconEl.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="45" fill="%234a9eff"/%3E%3C/svg%3E';
             };
         } catch (error) {
             // Ignore favicon errors
@@ -772,11 +809,10 @@ class DoxyEduScramjetBrowser {
             return;
         }
         
-        // Clean up Scramjet resources
+        // Clean up frame
         const tab = this.tabs.get(tabId);
-        if (tab && tab.scramjet) {
-            // Clean up Scramjet controller if needed
-            this.scramjetControllers.delete(tabId);
+        if (tab && tab.frame) {
+            tab.frame.frame.remove();
         }
         
         // Remove from tabs map
@@ -807,13 +843,6 @@ class DoxyEduScramjetBrowser {
         if (!url) return;
         
         this.navigateTo(url);
-    }
-    
-    handleUrlKeydown(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            this.urlForm.requestSubmit();
-        }
     }
     
     navigateTo(url) {
@@ -851,7 +880,7 @@ class DoxyEduScramjetBrowser {
             }
         }
         
-        // Treat as search query
+        // Treat as search query (Google)
         return this.searchEngine.replace('%s', encodeURIComponent(input));
     }
     
@@ -896,17 +925,24 @@ class DoxyEduScramjetBrowser {
         this.loadUrlInTab(this.activeTabId, tab.url);
     }
     
+    reloadTab(tabId) {
+        const tab = this.tabs.get(tabId);
+        if (!tab || !tab.url) return;
+        
+        this.loadUrlInTab(tabId, tab.url);
+    }
+    
     goHome() {
         if (!this.activeTabId) {
             this.createTab();
             return;
         }
         
-        this.loadUrlInTab(this.activeTabId, 'https://doxyedu.dpdns.org');
+        this.loadUrlInTab(this.activeTabId, 'https://www.google.com');
     }
     
     goHomeTab(tabId) {
-        this.loadUrlInTab(tabId, 'https://doxyedu.dpdns.org');
+        this.loadUrlInTab(tabId, 'https://www.google.com');
     }
     
     updateNavButtons() {
@@ -921,21 +957,51 @@ class DoxyEduScramjetBrowser {
     }
 }
 
-// Initialize browser when page loads and scripts are ready
+// Initialize browser (LIKE HOMEPAGE)
 function initBrowser() {
+    console.log('🔄 Starting DoxyEdu Tabbed Browser...');
+    
     // Check if required scripts are loaded
     if (typeof BareMux === 'undefined' || typeof $scramjetLoadController === 'undefined') {
-        console.log('Waiting for scripts to load...');
+        console.log('⏳ Waiting for scripts...');
         setTimeout(initBrowser, 100);
         return;
     }
     
-    console.log('All scripts loaded, initializing browser...');
-    window.browser = new DoxyEduScramjetBrowser();
+    console.log('✅ All scripts loaded, initializing...');
+    window.browser = new DoxyEduTabbedBrowser();
 }
 
-// Start initialization
-document.addEventListener('DOMContentLoaded', initBrowser);
+// Start when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBrowser);
+} else {
+    initBrowser();
+}
+
+// Expose methods to window for error buttons
+window.browser = {
+    reloadTab: (tabId) => {
+        if (window.browserInstance) {
+            window.browserInstance.reloadTab(tabId);
+        }
+    },
+    goHomeTab: (tabId) => {
+        if (window.browserInstance) {
+            window.browserInstance.goHomeTab(tabId);
+        }
+    },
+    reloadPage: () => {
+        if (window.browserInstance) {
+            window.browserInstance.reloadPage();
+        }
+    }
+};
+
+// Store instance globally
+document.addEventListener('DOMContentLoaded', () => {
+    window.browserInstance = window.browser;
+});
 </script>
 </body>
 </html>
