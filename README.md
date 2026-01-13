@@ -46,4 +46,18 @@ Modified by ME
 
 Note: For the original, maintained version, visit the official Scramjet repository.
 
+## ❓ FAQ
+
+**How can I deploy this?**
+
+There are a few ways to deploy this application:
+
+1.  **Using Docker (Recommended):** The repository includes a `Dockerfile` and `docker-compose.yml` for easy containerized deployment.
+2.  **Manual Setup:** You can follow the "Quick Setup" instructions in this README to run the Node.js frontend and Python backend manually.
+3.  **On Replit:** The project is configured to run on the Replit platform.
+
+**Where is the backend python part?**
+
+The Python backend is not included in this repository's source code. It is a separate package called `wisp-python` that you need to install via `pip`. The frontend is then configured to communicate with this backend service.
+
 
