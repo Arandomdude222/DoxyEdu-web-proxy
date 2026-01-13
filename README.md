@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://doxyedu.dpdns.org/LOGO.svg" alt="DoxyEdu Logo" width="400">
+  <img src="https://doxyedu.dpdns.org/logo.svg" alt="DoxyEdu Logo" width="400">
 </p>
 
 # DoxyEdu Web Proxy
