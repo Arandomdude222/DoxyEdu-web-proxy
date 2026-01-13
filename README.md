@@ -1,6 +1,8 @@
 <p align="center">
   <img src="https://doxyedu.dpdns.org/logo.svg" alt="DoxyEdu Logo" width="400">
 </p>
+<img width="1559" height="936" alt="image" src="https://doxyedu.dpdns.org/thumbnail.png" />
+
 
 # DoxyEdu Web Proxy
 
