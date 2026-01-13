@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+
+    <script src="/scram/scramjet.all.js"></script>
+    <script src="/baremux/index.js"></script>
+    <script src="/epoxy/index.js"></script>
+    <script src="/register-sw.js"></script>
+    <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      const style = document.createElement("style");
+      style.textContent = `* { cursor: none !important; }`;
+      document.head.appendChild(style);
+    
+      const cursor = document.createElement("img");
+      cursor.src = "/cursor.gif";
+      cursor.style.position = "fixed";
+      cursor.style.width = "17px";
+      cursor.style.height = "21px";
+      cursor.style.imageRendering = "auto";
+      cursor.style.pointerEvents = "none";
+      cursor.style.zIndex = "9999999";
+      cursor.style.transform = "translate(0, 0)";
+    
+      document.body.appendChild(cursor);
+    
+      document.addEventListener("mousemove", e => {
+        cursor.style.left = e.clientX + "px";
+        cursor.style.top = e.clientY + "px";
+      });
+    });
+    </script>
+
+    <style>
+        /* ============================
+           DEFAULT THEME (Minimalist)
+           ============================ */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            /* Allow scrolling */
+            overflow-y: auto;
+            min-height: 100vh;
+            transition: background 0.3s;
+        }
+
+        .main-ui-container {
+            width: 80%;
+            max-width: 800px;
+            margin: 80px auto;
+            padding: 30px;
+            background: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
+            border-radius: 0;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+            transition: all 0.3s;
+        }
+
+        .logo-img {
+            max-width: 200px;
+            height: auto;
+            margin-bottom: 20px;
+            display: block;
+            margin: 0 auto 20px auto;
+        }
+
+        h1 {
+            color: #4a90e2;
+            text-align: center;
+            margin-top: 0;
+        }
+
+        p {
+            color: #7b7b7b;
+            line-height: 1.5em;
+            margin-bottom: 20px;
+        }
+
+        .nav-links {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .nav-links a {
+            color: #4a90e2;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+
+        #style-select {
+            padding: 5px;
+            border: 1px solid #ccc;
+            background: #f9f9f9;
+            color: #333;
+            font-size: 14px;
+        }
+
+        #sj-form {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        #sj-address {
+            width: 70%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 0;
+            font-size: 16px;
+            outline: none;
+        }
+
+        #sj-address:focus {
+            border-color: #4a90e2;
+        }
+
+        button.primary-btn {
+            display: block;
+            padding: 10px 20px;
+            background-color: #4a90e2;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            border-radius: 0;
+        }
+
+        button.primary-btn:hover {
+            background-color: #357abd;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* --- PROXY OVERLAY --- */
+        #proxy-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff;
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            overflow: hidden; /* Overlay doesn't scroll body */
+        }
+
+        .proxy-bar {
+            height: 50px;
+            background-color: #4a90e2;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            flex-shrink: 0;
+        }
+
+        .proxy-bar button {
+            background: #ff5f57;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 0;
+            font-weight: bold;
+            margin-right: 15px;
+            cursor: pointer;
+        }
+
+        #proxy-nav-form { flex-grow: 1; display: flex; }
+        #proxy-nav-input {
+            width: 100%; padding: 8px 12px; border: none; border-radius: 0; outline: none; font-family: monospace;
+        }
+        #sj-frame { border: none; width: 100%; height: calc(100% - 50px); background: white; display: block; }
+        
+        /* --- LOGS WINDOW --- */
+        #logs-window {
+            position: fixed; bottom: 20px; right: 20px; width: 320px;
+            background: white; border: 1px solid #ccc;
+            box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
+            border-radius: 0; overflow: hidden; z-index: 10000;
+            display: flex; flex-direction: column;
+        }
+        .logs-header {
+            background: #4a90e2; color: white; padding: 10px 15px;
+            font-weight: bold; cursor: move; display: flex;
+            justify-content: space-between; align-items: center; user-select: none;
+        }
+        .logs-controls button { background: transparent; border: none; color: white; cursor: pointer; margin-left: 5px; }
+        #update-logs-frame { width: 100%; height: 300px; border: none; background: #f9f9f9; transition: height 0.3s; }
+        #error-msg { color: red; margin-top: 10px; display: none; padding: 10px; background: #fff0f0; border: 1px solid red; }
+
+        /* --- NEWS GRID --- */
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            text-align: left;
+            margin-top: 15px;
+        }
+        .news-card {
+            display: flex; flex-direction: column; border: 1px solid #eee; text-decoration: none;
+            background: #fff; transition: transform 0.2s, box-shadow 0.2s; height: 100%;
+        }
+        .news-card:hover {
+            transform: translateY(-2px); box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.15); border-color: #4a90e2;
+        }
+        .news-thumb {
+            width: 100%; height: 120px; object-fit: cover; background-color: #f0f0f0; border-bottom: 1px solid #eee;
+        }
+        .news-content { padding: 10px; display: flex; flex-direction: column; flex-grow: 1; }
+        .news-title {
+            color: #4a90e2; font-size: 0.85rem; font-weight: bold; margin-bottom: 5px;
+            display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .news-date { font-size: 0.7rem; color: #999; margin-top: auto; }
+
+
+        /* ==================================================================
+           THEME: AUTHENTIC FRUTIGER AERO (2000s / Vista)
+           ================================================================== */
+        
+        body.theme-2007 {
+            /* Classic Vista "Aurora" Gradient */
+            background: radial-gradient(circle at top left, #306eff, transparent 40%),
+                        radial-gradient(circle at bottom right, #00cdac, transparent 40%),
+                        linear-gradient(135deg, #003366 0%, #005b96 100%);
+            background-attachment: fixed;
+            font-family: "Segoe UI", Tahoma, Verdana, sans-serif;
+            color: #222;
+        }
+        body.theme-2007 .address{
+            background: #fff;
+            border: 1px solid #7a9bb0;
+            border-top-color: #555;
+            box-shadow: inset 0 2px 2px rgba(0,0,0,0.1);
+            border-radius: 2px;
+        }
+        /* Container: Window Effect */
+        body.theme-2007 .main-ui-container {
+            background: linear-gradient(to bottom, #f0f0f0 0%, #e0e0e0 100%);
+            /* The "Glass" Border */
+            border: 1px solid #707070;
+            border-radius: 8px;
+            /* Thick translucent cyan outline for "Aero Glass" edge */
+            box-shadow: 
+                0 0 0 5px rgba(100, 200, 255, 0.4), 
+                0 10px 30px rgba(0,0,0,0.5);
+            padding: 0; /* Reset padding for window layout */
+            overflow: hidden;
+        }
+
+        /* Fake "Window Controls" & Title Bar */
+        body.theme-2007 .main-ui-container::before {
+            content: "DoxyEdu Browser";
+            display: block;
+            height: 28px;
+            background: linear-gradient(to bottom, #dbebfc 0%, #bcd6f5 100%);
+            border-bottom: 1px solid #8ba0b9;
+            color: #444;
+            text-align: left;
+            padding-left: 10px;
+            line-height: 28px;
+            font-size: 12px;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.8);
+            border-radius: 7px 7px 0 0;
+        }
+
+        body.theme-2007 .main-ui-container::after {
+            content: " -  □  × ";
+            position: absolute;
+            top: 2px;
+            right: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            color: #555;
+            letter-spacing: 5px;
+            cursor: pointer;
+        }
+
+        /* Toolbar Area (Moved Nav) */
+        body.theme-2007 .nav-links {
+            background: linear-gradient(to bottom, #f5f5f5 0%, #cfcfcf 100%);
+            border-bottom: 1px solid #aaa;
+            margin: 0;
+            padding: 8px;
+            justify-content: flex-start;
+            box-shadow: inset 0 1px 0 #fff;
+        }
+
+        body.theme-2007 .nav-links a {
+            color: #333;
+            font-size: 12px;
+            padding: 4px 10px;
+            border: 1px solid transparent;
+            border-radius: 3px;
+            text-shadow: 0 1px 0 #fff;
+        }
+
+        body.theme-2007 .nav-links a:hover {
+            background: linear-gradient(to bottom, #e8f5fc 0%, #cceeff 100%);
+            border: 1px solid #8ba0b9;
+            text-decoration: none;
+        }
+
+        /* Content Padding wrapper */
+        body.theme-2007 .main-ui-container > *:not(.nav-links) {
+            /* Apply padding to elements not in nav */
+            margin-left: 20px;
+            margin-right: 20px;
+        }
+
+        /* Logo Reflection */
+        body.theme-2007 .logo-img {
+            margin-top: 20px;
+            -webkit-box-reflect: below 0px linear-gradient(to bottom, rgba(0,0,0,0.0), rgba(0,0,0,0.2));
+        }
+
+        body.theme-2007 h1 {
+            color: #003399;
+            font-weight: normal;
+            font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            margin-bottom: 5px;
+        }
+        
+        body.theme-2007 p {
+            color: #444;
+            font-size: 14px;
+        }
+
+        body.theme-2007 #sj-address {
+            background: #fff;
+            border: 1px solid #7a9bb0;
+            border-top-color: #555;
+            box-shadow: inset 0 2px 2px rgba(0,0,0,0.1);
+            border-radius: 2px;
+            padding: 8px;
+            height: 20%;
+            font-family: "Segoe UI", sans-serif;
+        }
+
+        body.theme-2007 button.primary-btn {
+            background: linear-gradient(to bottom, #ccffcc 0%, #66cc66 50%, #339933 51%, #006600 100%);
+            border: 1px solid #225522;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            text-shadow: 0 -1px 0 rgba(0,0,0,0.5);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 3px rgba(0,0,0,0.2);
+            margin-bottom: 20px; /* Spacing at bottom */
+        }
+        
+        body.theme-2007 button.primary-btn:hover {
+            background: linear-gradient(to bottom, #ddffdd 0%, #88dd88 50%, #44aa44 51%, #007700 100%);
+            box-shadow: 0 0 10px rgba(100,255,100,0.6);
+        }
+
+        /* Dropdown Style */
+        body.theme-2007 #style-select {
+            border: 1px solid #888;
+            border-radius: 3px;
+            padding: 3px;
+            font-size: 11px;
+            background: linear-gradient(#fff, #eee);
+        }
+
+        body.theme-2007 .news-card {
+            border-radius: 6px;
+            border: 1px solid #888;
+            background: linear-gradient(to bottom, #fff 0%, #f4f4f4 100%);
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+        }
+        
+        body.theme-2007 .news-title {
+            color: #114477;
+            font-family: Tahoma, sans-serif;
+        }
+
+        body.theme-2007 .news-thumb {
+            border-radius: 5px 5px 0 0;
+            border-bottom: 1px solid #aaa;
+        }
+
+        /* Logs Window - XP/Vista Style */
+        body.theme-2007 #logs-window {
+            border: 2px solid #0055ea;
+            border-radius: 5px 5px 0 0;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
+        }
+        body.theme-2007 .logs-header {
+            background: linear-gradient(to bottom, #0058ee 0%, #0023a5 100%); /* XP Blue */
+            font-family: Tahoma;
+            text-shadow: 1px 1px 0 #000;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="main-ui-container" id="main-menu">
+        <div class="nav-links">
+            <span style="margin-right: auto; font-size:12px; color:#555; padding-left:5px;" class="address">https://doxyedu.dpdns.org/ </span>
+            <a href="/">Home</a>
+            <a href="https://github.com/Arandomdude222/DoxyEdu-web-proxy" target="_blank">Github</a>
+            <a href="/credits.html">Credits</a>
+            <select id="style-select">
+                <option value="default">Default</option>
+                <option value="2007">Frutiger Aero</option>
+            </select>
+        </div>
+
+        <img src="logo.svg" alt="DoxyEdu" class="logo-img">
+        
+        <h1>Welcome to DoxyEdu</h1>
+        <p>Browse the w3b freely.</p>
+
+        <form id="sj-form">
+            <input id="sj-search-engine" value="https://www.google.com/search?q=%s" type="hidden" />
+            <input id="sj-address" type="text" placeholder="http://..." autocomplete="off" disabled />
+            <button type="submit" class="primary-btn" id="sj-btn" disabled>Go →</button>
+        </form>
+        <div id="error-msg"></div>
+    </div>
+
+    <!-- News Container -->
+    <div class="main-ui-container" style="margin-top: 20px;">
+        <h3 style="margin-top: 10px; color: #555; text-align: left; padding-left: 10px; border-bottom: 1px solid #ccc; padding-bottom:5px;">Latest Headlines</h3>
+        <div id="learning-news" class="news-grid">
+            <p style="width: 100%; text-align: center; color: #777;">Loading News Feed...</p>
+        </div>
+        <br>
+    </div>
+    
+
+    <div id="proxy-overlay">
+        <div class="proxy-bar">
+            <button onclick="exitProxy()">Exit</button>
+            <form id="proxy-nav-form">
+                <input id="proxy-nav-input" type="text" placeholder="Type URL here..." />
+            </form>
+        </div>
+    </div>
+
+    <div id="logs-window">
+        <div class="logs-header" id="logs-header">
+            <span>Update Logs</span>
+            <div class="logs-controls">
+                <button onclick="toggleLogs()">-</button>
+                <button onclick="closeLogs()">×</button>
+            </div>
+        </div>
+        <iframe id="update-logs-frame" src="/assets/2.html"></iframe>
+    </div>
+
+    <script>
+        "use strict";
+
+        // Theme Switcher Logic
+        const themeSelect = document.getElementById('style-select');
+        const savedTheme = localStorage.getItem('doxy-theme') || 'default';
+        if (savedTheme === '2007') {
+            document.body.classList.add('theme-2007');
+            themeSelect.value = '2007';
+        }
+
+        themeSelect.addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === '2007') {
+                document.body.classList.add('theme-2007');
+            } else {
+                document.body.classList.remove('theme-2007');
+            }
+            localStorage.setItem('doxy-theme', val);
+        });
+
+        async function loadRSS() {
+            try {
+                const url = "https://learningnews.com/feed";
+                const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`);
+                const data = await res.json();
+                const container = document.getElementById("learning-news");
+
+                if (!data.items) return;
+
+                container.innerHTML = "";
+                data.items.slice(0, 8).forEach(item => {
+                    let imgUrl = item.thumbnail;
+                    if (!imgUrl && item.enclosure && item.enclosure.link) imgUrl = item.enclosure.link;
+                    if (!imgUrl) {
+                        const div = document.createElement('div');
+                        div.innerHTML = item.description;
+                        const img = div.querySelector('img');
+                        if (img) imgUrl = img.src;
+                    }
+                    if (!imgUrl) imgUrl = "/placeholder.jpg";
+
+                    const card = document.createElement("a");
+                    card.className = "news-card";
+                    card.href = item.link;
+                    card.target = "_blank";
+                    const date = new Date(item.pubDate).toLocaleDateString();
+
+                    card.innerHTML = `
+                        <img src="${imgUrl}" class="news-thumb" alt="News" onerror="this.src='/placeholder.jpg'">
+                        <div class="news-content">
+                            <div class="news-title">${item.title}</div>
+                            <div class="news-date">${date}</div>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (e) {
+                console.error("RSS Error:", e);
+                document.getElementById("learning-news").innerHTML = "<p>Failed to load news.</p>";
+            }
+        }
+
+        function search(input, template) {
+            try { return new URL(input).toString(); } catch (err) { }
+            try {
+                const url = new URL(`http://${input}`);
+                if (url.hostname.includes(".")) return url.toString();
+            } catch (err) { }
+            return template.replace("%s", encodeURIComponent(input));
+        }
+
+        async function manualRegisterSW() {
+            if ('serviceWorker' in navigator) {
+                return navigator.serviceWorker.register('/scram/sw.js', {
+                    scope: '/scram/service/'
+                });
+            }
+            throw new Error("Service Workers not supported.");
+        }
+
+        window.addEventListener('load', async () => {
+            console.log("DOM Loaded. Initializing...");
+
+            const form = document.getElementById("sj-form");
+            const address = document.getElementById("sj-address");
+            const searchEngine = document.getElementById("sj-search-engine");
+            const btn = document.getElementById("sj-btn");
+            const errorMsg = document.getElementById("error-msg");
+
+            const mainMenu = document.getElementById("main-menu");
+            const proxyOverlay = document.getElementById("proxy-overlay");
+            const proxyInput = document.getElementById("proxy-nav-input");
+            const proxyNavForm = document.getElementById("proxy-nav-form");
+            loadRSS();
+
+            if (typeof BareMux === 'undefined' || typeof $scramjetLoadController === 'undefined') {
+                errorMsg.textContent = "failed to load.";
+                errorMsg.style.display = "block";
+                return;
+            }
+
+            const { ScramjetController } = $scramjetLoadController();
+            const scramjet = new ScramjetController({
+                files: {
+                    wasm: '/scram/scramjet.wasm.wasm',
+                    all: '/scram/scramjet.all.js',
+                    sync: '/scram/scramjet.sync.js',
+                },
+            });
+            scramjet.init();
+
+            const connection = new BareMux.BareMuxConnection("/baremux/worker.js");
+
+            address.disabled = false;
+            address.placeholder = "Search or enter URL...";
+            btn.disabled = false;
+
+            form.addEventListener("submit", async (event) => {
+                event.preventDefault();
+                errorMsg.style.display = "none";
+                const val = address.value.trim();
+                if (!val) return;
+
+                btn.disabled = true;
+                btn.textContent = "Loading...";
+
+                try {
+                    try {
+                        if (typeof registerSW === 'function') await registerSW();
+                        else await manualRegisterSW();
+                    } catch (swErr) {
+                        console.error("SW Error:", swErr);
+                        throw new Error("Failed to register Service Worker.");
+                    }
+
+                    const url = search(val, searchEngine.value);
+                    const wispUrl = (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host + "/wisp/";
+                    if ((await connection.getTransport()) !== "/epoxy/index.mjs") {
+                        await connection.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
+                    }
+
+                    // Lock body scroll only when proxy is active
+                    document.body.style.overflow = "hidden";
+                    
+                    mainMenu.style.display = "none";
+                    // Hide the news container too
+                    document.querySelector('.main-ui-container[style*="margin-top"]').style.display = "none";
+                    
+                    proxyOverlay.style.display = "flex";
+                    proxyInput.value = url;
+
+                    const existingFrame = document.getElementById("sj-frame");
+                    if (existingFrame) existingFrame.remove();
+
+                    const frame = scramjet.createFrame();
+                    frame.frame.id = "sj-frame";
+                    proxyOverlay.appendChild(frame.frame);
+                    frame.go(url);
+
+                } catch (err) {
+                    console.error(err);
+                    errorMsg.textContent = err.message || err.toString();
+                    errorMsg.style.display = "block";
+                    mainMenu.style.display = "block";
+                    document.querySelector('.main-ui-container[style*="margin-top"]').style.display = "block";
+                    proxyOverlay.style.display = "none";
+                    document.body.style.overflow = "auto";
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = "Go →";
+                }
+            });
+
+            proxyNavForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                address.value = proxyInput.value;
+                form.dispatchEvent(new Event('submit'));
+            });
+
+            window.exitProxy = function () {
+                document.body.style.overflow = "auto";
+                proxyOverlay.style.display = "none";
+                mainMenu.style.display = "block";
+                document.querySelector('.main-ui-container[style*="margin-top"]').style.display = "block";
+                const f = document.getElementById("sj-frame");
+                if (f) f.remove();
+                address.value = "";
+                proxyInput.value = "";
+            }
+        });
+
+        // Draggable Logs
+        const logsWindow = document.getElementById("logs-window");
+        const logsHeader = document.getElementById("logs-header");
+        let isDragging = false, currentX, currentY, initialX, initialY, xOffset = 0, yOffset = 0;
+        logsHeader.addEventListener("mousedown", dragStart);
+        document.addEventListener("mouseup", dragEnd);
+        document.addEventListener("mousemove", drag);
+        function dragStart(e) { initialX = e.clientX - xOffset; initialY = e.clientY - yOffset; if (e.target === logsHeader || e.target.parentNode === logsHeader) isDragging = true; }
+        function dragEnd(e) { initialX = currentX; initialY = currentY; isDragging = false; }
+        function drag(e) { if (isDragging) { e.preventDefault(); currentX = e.clientX - initialX; currentY = e.clientY - initialY; xOffset = currentX; yOffset = currentY; setTranslate(currentX, currentY, logsWindow); } }
+        function setTranslate(xPos, yPos, el) { el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)"; }
+
+        const logsFrame = document.getElementById('update-logs-frame');
+        let isMinimized = false;
+        window.toggleLogs = function () { if (!isMinimized) { logsFrame.style.height = '0px'; isMinimized = true; } else { logsFrame.style.height = '300px'; isMinimized = false; } }
+        window.closeLogs = function () { logsWindow.style.display = 'none'; }
+    </script>
+</body>
+</html>

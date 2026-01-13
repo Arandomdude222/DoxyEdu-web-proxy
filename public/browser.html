@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DoxyEdu Browser</title>
+    
+    <!-- Load in correct order -->
+    <script src="/scram/scramjet.all.js"></script>
+    <script src="/baremux/index.js"></script>
+    <script src="/epoxy/index.js"></script>
+    <script src="/register-sw.js"></script>
+    
+    <style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #e8eaed;
+    color: #202124;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.browser-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* Top bar (Chrome toolbar) */
+.browser-topbar {
+    background: #f1f3f4;
+    border-bottom: 1px solid #dadce0;
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Nav buttons */
+.nav-btn {
+    background: transparent;
+    border: none;
+    color: #5f6368;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+}
+.nav-btn:hover {
+    background: rgba(60,64,67,0.1);
+}
+.nav-btn:disabled {
+    opacity: 0.4;
+}
+
+/* Omnibox */
+.url-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #dadce0;
+    border-radius: 24px;
+    padding: 0 10px;
+    height: 34px;
+}
+
+#browser-url-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    background: transparent;
+    color: #202124;
+}
+
+#browser-go-btn {
+    background: transparent;
+    border: none;
+    color: #1a73e8;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0 8px;
+}
+
+/* Tabs bar */
+.browser-tabs {
+    background: #dee1e6;
+    display: flex;
+    align-items: flex-end;
+    height: 40px;
+    padding-left: 6px;
+    border-bottom: 1px solid #dadce0;
+}
+
+/* Individual tab */
+.browser-tab {
+    display: flex;
+    align-items: center;
+    background: #e8eaed;
+    color: #5f6368;
+    padding: 0 12px;
+    height: 34px;
+    margin-right: 2px;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    min-width: 150px;
+    max-width: 240px;
+}
+
+.browser-tab.active {
+    background: #ffffff;
+    color: #202124;
+    box-shadow: 0 -1px 0 #ffffff, 0 0 0 1px #dadce0;
+}
+
+.tab-favicon {
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+}
+
+.tab-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12.5px;
+}
+
+.tab-close {
+    margin-left: 6px;
+    font-size: 16px;
+    color: #5f6368;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    text-align: center;
+    line-height: 18px;
+}
+.tab-close:hover {
+    background: rgba(60,64,67,0.15);
+}
+
+/* New tab button */
+#new-tab-btn {
+    background: transparent;
+    border: none;
+    color: #1a73e8;
+    font-size: 20px;
+    height: 34px;
+    width: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+}
+#new-tab-btn:hover {
+    background: rgba(26,115,232,0.1);
+}
+
+/* Content */
+.browser-content {
+    flex: 1;
+    background: #ffffff;
+    position: relative;
+}
+
+.tab-content {
+    position: absolute;
+    inset: 0;
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.sj-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+/* Loading overlay */
+.tab-loading {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.tab-loading-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #e0e0e0;
+    border-top: 3px solid #1a73e8;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Error */
+.tab-error {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    color: #d93025;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.tab-error button {
+    background: #1a73e8;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 16px;
+    cursor: pointer;
+}
+
+/* Status bar */
+.status-bar {
+    background: #f1f3f4;
+    border-top: 1px solid #dadce0;
+    color: #5f6368;
+    font-size: 12px;
+    padding: 4px 10px;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+    </style>
+</head>
+<body>
+    <div class="browser-container">
+        <!-- Top Navigation -->
+        <div class="browser-topbar">
+            <button class="nav-btn" id="back-btn" title="Back">←</button>
+            <button class="nav-btn" id="forward-btn" title="Forward">→</button>
+            <button class="nav-btn" id="reload-btn" title="Reload">↻</button>
+            
+            <!-- URL Bar -->
+            <form id="browser-url-form" class="url-container">
+                <input id="browser-url-input" type="text" placeholder="Enter any URL or search the web..." autocomplete="off" />
+                <button id="browser-go-btn" type="submit">Go</button>
+            </form>
+            
+            <button class="nav-btn" id="home-btn" title="Home"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='black'%3E%3Cpath d='M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z'/%3E%3C/svg%3E" width="20" height="20"></img></button>
+            <button class="nav-btn" id="new-tab-btn2" title="New Tab">+</button>
+        </div>
+        
+        <!-- Tabs Bar -->
+        <div class="browser-tabs" id="browser-tabs-container">
+            <!-- jS will add -->
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="browser-content" id="browser-content-area">
+            <!-- JS will add -->
+        </div>
+        
+        <!-- Status Bar -->
+        <div class="status-bar" id="status-bar">
+            <span id="status-text">Ready</span>
+        </div>
+    </div>
+
+<script>
+class DoxyEduTabbedBrowser {
+    constructor() {
+        this.tabs = new Map();
+        this.activeTabId = null;
+        this.tabCounter = 0;
+        this.searchEngine = 'https://www.google.com/search?q=%s';
+        
+        // SINGLETON instances (like homepage)
+        this.scramjet = null;
+        this.connection = null;
+        this.initialized = false;
+        
+        this.init();
+    }
+    
+    async init() {
+        console.log('🚀 DoxyEdu Tabbed Browser initializing...');
+        
+        try {
+            // 1. Initialize UI FIRST
+            this.initUI();
+            
+            // 2. Wait for scripts to load 
+            await this.waitForScripts();
+            
+            // 3. Initialize SINGLE Scramjet instance
+            const { ScramjetController } = $scramjetLoadController();
+            this.scramjet = new ScramjetController({
+                files: {
+                    wasm: '/scram/scramjet.wasm.wasm',
+                    all: '/scram/scramjet.all.js',
+                    sync: '/scram/scramjet.sync.js',
+                },
+            });
+            
+            await this.scramjet.init();
+            console.log('✅ Scramjet initialized');
+            
+            // 4. Initialize SINGLE BareMux connection (LIKE HOMEPAGE)
+            this.connection = new BareMux.BareMuxConnection("/baremux/worker.js");
+            
+            const wispUrl = (location.protocol === "https:" ? "wss" : "ws") +
+                "://" + location.host + "/wisp/";
+            
+            await this.connection.setTransport("/epoxy/index.mjs", [{ wisp: wispUrl }]);
+            console.log('✅ BareMux initialized');
+            
+            this.initialized = true;
+            
+            // 5. Create first tab with Google homepage
+            this.createTab('https://www.google.com');
+            
+            console.log('✅ DoxyEdu Tabbed Browser ready');
+            
+        } catch (error) {
+            console.error('❌ Failed to initialize browser:', error);
+            this.showGlobalError('Failed to initialize: ' + error.message);
+        }
+    }
+   
+    waitForScripts() {
+        return new Promise((resolve, reject) => {
+            let attempts = 0;
+            const maxAttempts = 50;
+            
+            const check = () => {
+                attempts++;
+
+                const scriptsLoaded = 
+                    typeof BareMux !== 'undefined' && 
+                    typeof $scramjetLoadController !== 'undefined' &&
+                    typeof BareMux.BareMuxConnection === 'function';
+                
+                if (scriptsLoaded) {
+                    console.log('✅ All scripts loaded');
+                    resolve();
+                } else if (attempts >= maxAttempts) {
+                    reject(new Error('Scripts failed to load'));
+                } else {
+                    setTimeout(check, 100);
+                }
+            };
+            
+            check();
+        });
+    }
+    
+    initUI() {
+        // Get elements
+        this.urlForm = document.getElementById('browser-url-form');
+        this.urlInput = document.getElementById('browser-url-input');
+        this.tabsContainer = document.getElementById('browser-tabs-container');
+        this.contentArea = document.getElementById('browser-content-area');
+        this.statusBar = document.getElementById('status-bar');
+        this.statusText = document.getElementById('status-text');
+        
+        // Event listeners
+        this.urlForm.addEventListener('submit', (e) => this.handleUrlSubmit(e));
+        this.urlInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.urlForm.requestSubmit();
+            }
+        });
+        
+        // Navigation buttons
+        document.getElementById('back-btn').addEventListener('click', () => this.navigateBack());
+        document.getElementById('forward-btn').addEventListener('click', () => this.navigateForward());
+        document.getElementById('reload-btn').addEventListener('click', () => this.reloadPage());
+        document.getElementById('home-btn').addEventListener('click', () => this.goHome());
+        document.getElementById('new-tab-btn2').addEventListener('click', () => this.createTab());
+        
+        // Add new tab button to tabs container
+        const newTabBtn = document.createElement('button');
+        newTabBtn.id = 'new-tab-btn';
+        newTabBtn.innerHTML = '+';
+        newTabBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.createTab();
+        });
+        this.tabsContainer.appendChild(newTabBtn);
+    }
+    
+    async createTab(url = 'https://www.google.com') {
+        this.tabCounter++;
+        const tabId = `tab-${this.tabCounter}`;
+        
+        console.log(`Creating tab ${tabId} for ${url}`);
+        
+        // Create tab data
+        const tab = {
+            id: tabId,
+            url: this.normalizeUrl(url),
+            title: 'New Tab',
+            history: [],
+            historyIndex: -1,
+            isLoading: false,
+            favicon: null,
+            frame: null,
+            loadingEl: null
+        };
+        
+        this.tabs.set(tabId, tab);
+        
+        // Create UI elements
+        this.createTabUI(tabId, url);
+        
+        // Load the URL
+        await this.loadUrlInTab(tabId, url);
+        
+        // Set as active
+        this.setActiveTab(tabId);
+        
+        return tabId;
+    }
+    
+    createTabUI(tabId, url) {
+        // Tab element
+        const tabEl = document.createElement('div');
+        tabEl.className = 'browser-tab';
+        tabEl.dataset.tabId = tabId;
+        
+        const favicon = document.createElement('img');
+        favicon.className = 'tab-favicon';
+        favicon.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="45" fill="%234a9eff"/%3E%3C/svg%3E';
+        favicon.onerror = () => favicon.style.display = 'none';
+        
+        const title = document.createElement('span');
+        title.className = 'tab-title';
+        title.textContent = 'New Tab';
+        
+        const close = document.createElement('span');
+        close.className = 'tab-close';
+        close.innerHTML = '×';
+        close.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.closeTab(tabId);
+        });
+        
+        tabEl.appendChild(favicon);
+        tabEl.appendChild(title);
+        tabEl.appendChild(close);
+        
+        tabEl.addEventListener('click', (e) => {
+            if (e.target !== close) {
+                this.setActiveTab(tabId);
+            }
+        });
+        
+        // Insert before new tab button
+        const newTabBtn = document.getElementById('new-tab-btn');
+        this.tabsContainer.insertBefore(tabEl, newTabBtn);
+        
+        // Content area
+        const contentEl = document.createElement('div');
+        contentEl.className = 'tab-content';
+        contentEl.id = `tab-content-${tabId}`;
+        
+        // Add loading overlay
+        const loadingEl = document.createElement('div');
+        loadingEl.className = 'tab-loading';
+        loadingEl.style.display = 'none';
+        loadingEl.innerHTML = `
+            <div class="tab-loading-spinner"></div>
+            <div>Loading via Scramjet...</div>
+        `;
+        contentEl.appendChild(loadingEl);
+        
+        this.contentArea.appendChild(contentEl);
+    }
+    
+    async loadUrlInTab(tabId, url) {
+        const tab = this.tabs.get(tabId);
+        if (!tab) return;
+        
+        // Normalize URL
+        const normalizedUrl = this.normalizeUrl(url);
+        
+        console.log(`Loading ${normalizedUrl} in tab ${tabId}`);
+        
+        // Show loading
+        this.showLoading(tabId, true);
+        this.showStatus(`Loading: ${normalizedUrl}`);
+        
+        try {
+            await registerSW();
+            
+            const contentEl = document.getElementById(`tab-content-${tabId}`);
+            if (!tab.frame) {
+                if (!this.scramjet) {
+                    throw new Error('Scramjet not initialized');
+                }
+                const frame = this.scramjet.createFrame();
+                frame.frame.className = 'sj-frame';
+                frame.frame.id = `sj-frame-${tabId}`;
+                
+                // Store frame reference
+                tab.frame = frame;
+                
+                // Add frame to content area
+                contentEl.appendChild(frame.frame);
+                
+                // Listen for frame events
+                this.setupFrameEvents(tabId, frame);
+            }
+            
+            // Update tab URL
+            tab.url = normalizedUrl;
+            
+            // Add to history
+            this.addToHistory(tabId, normalizedUrl);
+            
+            tab.frame.go(normalizedUrl);
+            
+            // Update URL bar if this is active tab
+            if (this.activeTabId === tabId) {
+                this.urlInput.value = normalizedUrl;
+            }
+            
+            // Update tab title with hostname
+            this.updateTabTitle(tabId, new URL(normalizedUrl).hostname);
+            
+        } catch (error) {
+            console.error(`Failed to load URL in tab ${tabId}:`, error);
+            this.showLoading(tabId, false);
+            this.showTabError(tabId, `Failed to load: ${error.message}`);
+        }
+    }
+    
+    setupFrameEvents(tabId, frame) {
+        // Listen for frame load events
+        frame.frame.addEventListener('load', () => {
+            this.handleFrameLoad(tabId);
+        });
+        
+        // Listen for frame errors
+        frame.frame.addEventListener('error', (error) => {
+            console.error(`Frame error in tab ${tabId}:`, error);
+            this.handleFrameError(tabId, error);
+        });
+        
+        // Try to intercept navigation within the frame
+        frame.frame.contentWindow.addEventListener('beforeunload', () => {
+            this.showLoading(tabId, true);
+        });
+    }
+    
+    handleFrameLoad(tabId) {
+        console.log(`Frame loaded for tab ${tabId}`);
+        const tab = this.tabs.get(tabId);
+        if (!tab) return;
+        
+        this.showLoading(tabId, false);
+        
+        try {
+            // Try to get page title from frame
+            const frame = tab.frame.frame;
+            if (frame && frame.contentDocument) {
+                const title = frame.contentDocument.title || new URL(tab.url).hostname;
+                tab.title = title;
+                this.updateTabTitle(tabId, title);
+                
+                // Update favicon
+                this.updateFavicon(tabId);
+            }
+        } catch (error) {
+            // Cross-origin restrictions
+            this.updateTabTitle(tabId, new URL(tab.url).hostname);
+        }
+        
+        // Show status
+        this.showStatus(`Loaded: ${tab.url}`, 2000);
+    }
+    
+    handleFrameError(tabId, error) {
+        console.error(`Frame error for tab ${tabId}:`, error);
+        this.showLoading(tabId, false);
+        this.showTabError(tabId, 'Failed to load page via Scramjet');
+    }
+    
+    showLoading(tabId, show) {
+        const contentEl = document.getElementById(`tab-content-${tabId}`);
+        if (!contentEl) return;
+        
+        const loadingEl = contentEl.querySelector('.tab-loading');
+        if (loadingEl) {
+            loadingEl.style.display = show ? 'flex' : 'none';
+        }
+        
+        const tab = this.tabs.get(tabId);
+        if (tab) {
+            tab.isLoading = show;
+        }
+    }
+    
+    showTabError(tabId, message) {
+        const contentEl = document.getElementById(`tab-content-${tabId}`);
+        if (!contentEl) return;
+        
+        // Remove existing error if any
+        const existingError = contentEl.querySelector('.tab-error');
+        if (existingError) existingError.remove();
+        
+        const errorEl = document.createElement('div');
+        errorEl.className = 'tab-error';
+        errorEl.innerHTML = `
+            <h3>Error</h3>
+            <p>${message}</p>
+            <button onclick="window.browser.reloadTab('${tabId}')">Try Again</button>
+            <button onclick="window.browser.goHomeTab('${tabId}')">Go Home</button>
+        `;
+        
+        contentEl.appendChild(errorEl);
+        
+        this.showStatus(`Error: ${message}`, 5000);
+    }
+    
+    showGlobalError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #111;
+            padding: 30px;
+            border-radius: 10px;
+            border: 2px solid #ff5f57;
+            z-index: 10000;
+            color: #fff;
+            text-align: center;
+        `;
+        errorDiv.innerHTML = `
+            <h3>DoxyEdu Error</h3>
+            <p>${message}</p>
+            <button onclick="location.reload()" style="background: #28c840; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-top: 15px;">
+                Reload Page
+            </button>
+        `;
+        document.body.appendChild(errorDiv);
+    }
+    
+    showStatus(message, timeout = 3000) {
+        this.statusText.textContent = message;
+        this.statusBar.style.display = 'block';
+        
+        if (timeout > 0) {
+            clearTimeout(this.statusTimeout);
+            this.statusTimeout = setTimeout(() => {
+                this.statusBar.style.display = 'none';
+            }, timeout);
+        }
+    }
+    
+    updateTabTitle(tabId, title) {
+        const tabEl = document.querySelector(`.browser-tab[data-tab-id="${tabId}"]`);
+        if (!tabEl) return;
+        
+        const titleEl = tabEl.querySelector('.tab-title');
+        if (titleEl) {
+            titleEl.textContent = title;
+        }
+        
+        const tab = this.tabs.get(tabId);
+        if (tab) {
+            tab.title = title;
+        }
+    }
+    
+    updateFavicon(tabId) {
+        const tab = this.tabs.get(tabId);
+        if (!tab || !tab.url) return;
+        
+        const tabEl = document.querySelector(`.browser-tab[data-tab-id="${tabId}"]`);
+        if (!tabEl) return;
+        
+        const faviconEl = tabEl.querySelector('.tab-favicon');
+        if (!faviconEl) return;
+        
+        try {
+            const urlObj = new URL(tab.url);
+            const faviconUrl = `${urlObj.origin}/favicon.ico`;
+            
+            faviconEl.src = faviconUrl;
+            faviconEl.onerror = () => {
+                faviconEl.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Ccircle cx="50" cy="50" r="45" fill="%234a9eff"/%3E%3C/svg%3E';
+            };
+        } catch (error) {
+            // Ignore favicon errors
+        }
+    }
+    
+    setActiveTab(tabId) {
+        if (this.activeTabId === tabId) return;
+        
+        // Deactivate previous tab
+        if (this.activeTabId) {
+            const prevTabEl = document.querySelector(`.browser-tab[data-tab-id="${this.activeTabId}"]`);
+            const prevContentEl = document.getElementById(`tab-content-${this.activeTabId}`);
+            
+            if (prevTabEl) prevTabEl.classList.remove('active');
+            if (prevContentEl) prevContentEl.classList.remove('active');
+        }
+        
+        // Activate new tab
+        this.activeTabId = tabId;
+        
+        const tab = this.tabs.get(tabId);
+        const tabEl = document.querySelector(`.browser-tab[data-tab-id="${tabId}"]`);
+        const contentEl = document.getElementById(`tab-content-${tabId}`);
+        
+        if (tabEl) tabEl.classList.add('active');
+        if (contentEl) contentEl.classList.add('active');
+        
+        // Update URL bar
+        if (tab && this.urlInput) {
+            this.urlInput.value = tab.url || '';
+        }
+        
+        // Update navigation buttons
+        this.updateNavButtons();
+    }
+    
+    closeTab(tabId) {
+        if (this.tabs.size <= 1) {
+            // Don't close last tab, just create new one
+            this.createTab();
+            return;
+        }
+        
+        // Clean up frame
+        const tab = this.tabs.get(tabId);
+        if (tab && tab.frame) {
+            tab.frame.frame.remove();
+        }
+        
+        // Remove from tabs map
+        this.tabs.delete(tabId);
+        
+        // Remove UI elements
+        const tabEl = document.querySelector(`.browser-tab[data-tab-id="${tabId}"]`);
+        const contentEl = document.getElementById(`tab-content-${tabId}`);
+        
+        if (tabEl) tabEl.remove();
+        if (contentEl) contentEl.remove();
+        
+        // If closing active tab, activate another tab
+        if (this.activeTabId === tabId) {
+            const remainingTabs = Array.from(this.tabs.keys());
+            if (remainingTabs.length > 0) {
+                this.setActiveTab(remainingTabs[0]);
+            } else {
+                this.activeTabId = null;
+            }
+        }
+    }
+    
+    handleUrlSubmit(e) {
+        e.preventDefault();
+        
+        const url = this.urlInput.value.trim();
+        if (!url) return;
+        
+        this.navigateTo(url);
+    }
+    
+    navigateTo(url) {
+        if (!this.activeTabId) {
+            this.createTab(url);
+            return;
+        }
+        
+        this.loadUrlInTab(this.activeTabId, url);
+    }
+    
+    normalizeUrl(input) {
+        input = input.trim();
+        
+        // Check if it's already a valid URL
+        try {
+            new URL(input);
+            return input;
+        } catch {
+            // Not a valid URL
+        }
+        
+        // Check if it's a domain (contains dot but no spaces)
+        if (input.includes('.') && !input.includes(' ')) {
+            // Try adding https://
+            if (!input.startsWith('http://') && !input.startsWith('https://')) {
+                input = 'https://' + input;
+            }
+            
+            try {
+                new URL(input);
+                return input;
+            } catch {
+                // Still not valid
+            }
+        }
+        
+        // Treat as search query (Google)
+        return this.searchEngine.replace('%s', encodeURIComponent(input));
+    }
+    
+    addToHistory(tabId, url) {
+        const tab = this.tabs.get(tabId);
+        if (!tab) return;
+        
+        // Remove any forward history
+        tab.history = tab.history.slice(0, tab.historyIndex + 1);
+        
+        // Add new URL
+        tab.history.push(url);
+        tab.historyIndex = tab.history.length - 1;
+        
+        this.updateNavButtons();
+    }
+    
+    navigateBack() {
+        const tab = this.tabs.get(this.activeTabId);
+        if (!tab || tab.historyIndex <= 0) return;
+        
+        tab.historyIndex--;
+        const url = tab.history[tab.historyIndex];
+        this.loadUrlInTab(this.activeTabId, url);
+    }
+    
+    navigateForward() {
+        const tab = this.tabs.get(this.activeTabId);
+        if (!tab || tab.historyIndex >= tab.history.length - 1) return;
+        
+        tab.historyIndex++;
+        const url = tab.history[tab.historyIndex];
+        this.loadUrlInTab(this.activeTabId, url);
+    }
+    
+    reloadPage() {
+        if (!this.activeTabId) return;
+        
+        const tab = this.tabs.get(this.activeTabId);
+        if (!tab || !tab.url) return;
+        
+        this.loadUrlInTab(this.activeTabId, tab.url);
+    }
+    
+    reloadTab(tabId) {
+        const tab = this.tabs.get(tabId);
+        if (!tab || !tab.url) return;
+        
+        this.loadUrlInTab(tabId, tab.url);
+    }
+    
+    goHome() {
+        if (!this.activeTabId) {
+            this.createTab();
+            return;
+        }
+        
+        this.loadUrlInTab(this.activeTabId, 'https://www.google.com');
+    }
+    
+    goHomeTab(tabId) {
+        this.loadUrlInTab(tabId, 'https://www.google.com');
+    }
+    
+    updateNavButtons() {
+        const tab = this.tabs.get(this.activeTabId);
+        if (!tab) return;
+        
+        const backBtn = document.getElementById('back-btn');
+        const forwardBtn = document.getElementById('forward-btn');
+        
+        if (backBtn) backBtn.disabled = tab.historyIndex <= 0;
+        if (forwardBtn) forwardBtn.disabled = tab.historyIndex >= tab.history.length - 1;
+    }
+}
+
+// Initialize browser 
+function initBrowser() {
+    console.log('🔄 Starting DoxyEdu Tabbed Browser...');
+    
+    // Check if required scripts are loaded
+    if (typeof BareMux === 'undefined' || typeof $scramjetLoadController === 'undefined') {
+        console.log('Waiting for scripts...');
+        setTimeout(initBrowser, 100);
+        return;
+    }
+    
+    console.log('[✅]All scripts loaded, initializing...');
+    window.browser = new DoxyEduTabbedBrowser();
+}
+
+// Start when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBrowser);
+} else {
+    initBrowser();
+}
+
+// Expose methods to window for error buttons
+window.browser = {
+    reloadTab: (tabId) => {
+        if (window.browserInstance) {
+            window.browserInstance.reloadTab(tabId);
+        }
+    },
+    goHomeTab: (tabId) => {
+        if (window.browserInstance) {
+            window.browserInstance.goHomeTab(tabId);
+        }
+    },
+    reloadPage: () => {
+        if (window.browserInstance) {
+            window.browserInstance.reloadPage();
+        }
+    }
+};
+
+// Store instance globally
+document.addEventListener('DOMContentLoaded', () => {
+    window.browserInstance = window.browser;
+});
+</script>
+</body>
+</html>
