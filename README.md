@@ -26,7 +26,7 @@ This repository contains modifications to the original Scramjet project and cust
 
 ### Frontend (Node.js):
 ```bash
-git clone https://github.com/Arandomdude22/DoxyEdu-web-proxy.git
+git clone https://github.com/Arandomdude222/DoxyEdu-web-proxy.git
 cd DoxyEdu-web-proxy
 pnpm install
 ```
